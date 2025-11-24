@@ -66,7 +66,7 @@ class LoginPage(tk.Frame):
             self.on_login(u)
         else:
             messagebox.showerror("SmartFit", "Invalid username or password.")
-
+# change it before 
 class DashboardPage(tk.Frame):
     def __init__(self, master, on_logout):
         super().__init__(master)
