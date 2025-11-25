@@ -1,0 +1,22 @@
+# inventory.py
+import tkinter as tk
+
+class InventoryPage(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent, bg="#f8f9fa")
+        self.controller = controller
+        self.back_button("DashboardPage")
+        tk.Label(self, text="Inventory Layer", font=("Segoe UI", 22, "bold"), bg="#f8f9fa").pack(pady=30)
+        tk.Label(self, text="(For assignment: extend this to Add / Delete / Update stock)",
+                 font=("Segoe UI", 14), bg="#f8f9fa", fg="#666").pack(pady=10)
+        self.box = tk.Listbox(self, font=("Segoe UI", 12), width=80, height=20)
+        self.box.pack(pady=20, padx=50)
+
+    def back_button(self, to_page):
+        tk.Button(self, text="Back", font=("Segoe UI", 16, "bold"), bg="white", fg="black", bd=0,
+                  command=lambda: self.controller.show_page(to_page)).place(x=15, y=10)
+
+    def on_show(self):
+        self.box.delete(0, "end")
+        for i, p in enumerate(self.controller.products, 1):
+            self.box.insert("end", f"{i}. {p.name} | ${p.price:.2f} | Sizes: S,M,L,XL") 
