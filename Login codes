@@ -1,101 +1,55 @@
-# SmartFit
-# simple, safe tkinter version
-# login: admin / admin123
-
-import os
+# login_dashboard.py
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import messagebox
+from PIL import Image, ImageTk
+import os
+import datetime
+import random
+import re
 
-APP_TITLE = "SmartFit — Clothing Business"
-APP_SIZE = "900x550"
-LOGO_PATH = os.path.expanduser(r"~/Desktop/SmartFit/logo.png")
-USERS = {"admin": "admin123"}
+# Import other modules
+from inventory import InventoryPage
+from payment_bill import ProductDetailPage, CartPage, PaymentPage, BillPage
 
-# adjust these two to move box relative to logo
-FORM_RELX = 0.50   # left ↔ right (0.5 center)
-FORM_RELY = 0.35   # up ↔ down (smaller number = higher)
-FORM_W, FORM_H = 320, 140
-CARD_FILL = "gray95"
-CARD_STIPPLE = "gray12"
+# =========================================================
+# -------------------------- MODELS ------------------------
+# =========================================================
+class Product:
+    def _init_(self, name, price, image_path, sizes=("S", "M", "L", "XL")):
+        self.name = name
+        self.price = float(price)
+        self.image_path = image_path
+        self.sizes = sizes
 
-class LoginPage(tk.Frame):
-    def __init__(self, master, on_login):
-        super().__init__(master)
-        self.on_login = on_login
+class Cart:
+    def _init_(self):
+        self.items = []
+    def add(self, product, size="M"):
+        self.items.append((product, size))
+    def remove(self, index):
+        if 0 <= index < len(self.items):
+            self.items.pop(index)
+    def clear(self):
+        self.items.clear()
+    def count(self):
+        return len(self.items)
+    def total(self):
+        return sum(p.price for p, _ in self.items)
 
-        # background logo
-        self.bg_img = None
-        if os.path.exists(LOGO_PATH):
-            try:
-                self.bg_img = tk.PhotoImage(file=LOGO_PATH)
-                tk.Label(self, image=self.bg_img).place(relx=0, rely=0, relwidth=1, relheight=1)
-            except Exception:
-                self.config(bg="#ffffff")
-        else:
-            self.config(bg="#ffffff")
+class Customer:
+    DISCOUNTS = {"Gold": 0.15, "Silver": 0.10, "Bronze": 0.07}
+    def _init_(self, name="", phone="", address="", email="", ctype="Bronze"):
+        self.name = name
+        self.phone = phone
+        self.address = address
+        self.email = email
+        self.ctype = ctype
+    def discount_rate(self):
+        return self.DISCOUNTS.get(self.ctype, 0.0)
 
-        # simple transparent card above logo
-        canvas = tk.Canvas(self, width=FORM_W, height=FORM_H, highlightthickness=0)
-        canvas.place(relx=FORM_RELX, rely=FORM_RELY, anchor="center")
-        canvas.create_rectangle(0, 0, FORM_W, FORM_H, fill=CARD_FILL, outline="", stipple=CARD_STIPPLE)
-
-        form = ttk.Frame(canvas, padding=10)
-        canvas.create_window(FORM_W // 2, FORM_H // 2, window=form)
-
-        ttk.Label(form, text="Username").grid(row=0, column=0, sticky="e", padx=(0, 8), pady=6)
-        ttk.Label(form, text="Password").grid(row=1, column=0, sticky="e", padx=(0, 8), pady=6)
-
-        self.user_var = tk.StringVar()
-        self.pass_var = tk.StringVar()
-
-        user_entry = ttk.Entry(form, textvariable=self.user_var, width=24)
-        pass_entry = ttk.Entry(form, textvariable=self.pass_var, show="•", width=24)
-        user_entry.grid(row=0, column=1, pady=6)
-        pass_entry.grid(row=1, column=1, pady=6)
-
-        ttk.Button(form, text="Login", command=self.try_login).grid(row=2, column=1, sticky="e", pady=(8, 0))
-        user_entry.focus()
-        pass_entry.bind("<Return>", lambda e: self.try_login())
-
-    def try_login(self):
-        u, p = self.user_var.get().strip(), self.pass_var.get().strip()
-        if not u or not p:
-            messagebox.showwarning("SmartFit", "Please enter both username and password.")
-            return
-        if USERS.get(u) == p:
-            self.on_login(u)
-        else:
-            messagebox.showerror("SmartFit", "Invalid username or password.")
-# change it before 
-class DashboardPage(tk.Frame):
-    def __init__(self, master, on_logout):
-        super().__init__(master)
-        ttk.Label(self, text="SmartFit Dashboard", font=("Segoe UI", 16, "bold")).pack(pady=20)
-        ttk.Button(self, text="Logout", command=on_logout).pack()
-
-class App(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.title(APP_TITLE)
-        self.geometry(APP_SIZE)
-        self.resizable(False, False)
-
-        container = ttk.Frame(self)
-        container.pack(fill="both", expand=True)
-        container.grid_rowconfigure(0, weight=1)
-        container.grid_columnconfigure(0, weight=1)
-
-        self.login = LoginPage(container, on_login=self.after_login)
-        self.dash = DashboardPage(container, on_logout=self.show_login)
-        self.login.grid(row=0, column=0, sticky="nsew")
-        self.dash.grid(row=0, column=0, sticky="nsew")
-        self.show_login()
-
-    def show_login(self):
-        self.login.tkraise()
-
-    def after_login(self, _user):
-        self.dash.tkraise()
-
-if __name__ == "__main__":
-    App().mainloop()
+class BillGenerator:
+    @staticmethod
+    def generate_bill_no():
+        y = datetime.datetime.now().year
+        r = random.randint(100000, 999999)
+        return f"BILL-{y}-{r}"
