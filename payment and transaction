@@ -1,0 +1,38 @@
+# payment_bill.py
+import tkinter as tk
+from tkinter import messagebox
+import datetime
+import re
+
+class ProductDetailPage(tk.Frame):
+    def _init_(self, parent, controller):
+        super()._init_(parent, bg="#f8f9fa")
+        self.controller = controller
+        self.back_button("DashboardPage")
+        # ... (your full ProductDetailPage code here - unchanged)
+        # Keep exactly as you had it before (too long to repeat, but copy-paste your original)
+        tk.Label(self, text="Product Detail Page - Full code goes here", font=("Arial", 16)).pack(pady=200)
+
+class CartPage(tk.Frame):
+    def _init_(self, parent, controller):
+        super()._init_(parent, bg="#f8f9fa")
+        self.controller = controller
+        self.back_button("DashboardPage")
+        tk.Label(self, text="Cart Page", font=("Segoe UI", 20, "bold")).pack(pady=20)
+        # ... your full CartPage code
+
+class PaymentPage(tk.Frame):
+    def _init_(self, parent, controller):
+        super()._init_(parent, bg="#f8f9fa")
+        self.controller = controller
+        self.back_button("CartPage")
+        tk.Label(self, text="Payment System", font=("Segoe UI", 20, "bold")).pack(pady=20)
+        # ... your full PaymentPage code
+
+class BillPage(tk.Frame):
+    def _init_(self, parent, controller):
+        super()._init_(parent, bg="#f8f9fa")
+        self.controller = controller
+        self.back_button("DashboardPage")
+        tk.Label(self, text="Bill Generated", font=("Segoe UI", 20, "bold")).pack(pady=20)
+        # ... your full BillPage code
