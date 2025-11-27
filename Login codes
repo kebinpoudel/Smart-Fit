@@ -53,3 +53,266 @@ class BillGenerator:
         y = datetime.datetime.now().year
         r = random.randint(100000, 999999)
         return f"BILL-{y}-{r}"
+
+
+
+# =========================================================
+# ----------------------- MAIN APP ------------------------
+# =========================================================
+class App(tk.Tk):
+    def _init_(self):
+        super()._init_()
+        self.title("SmartFit Store")
+        self.state("zoomed")
+        self.config(bg="#f8f9fa")
+
+        self.images_folder = r"C:\Users\admin\OneDrive - Auckland Institute of Studies\Desktop\photo"
+        self.logo_path = os.path.join(self.images_folder, "logo.png")
+        self.visa_path = os.path.join(self.images_folder, "visa.png")
+        self.overlay_path = os.path.join(self.images_folder, "overlay.png")
+
+        if not os.path.exists(self.overlay_path):
+            self.create_overlay()
+
+        self.cart = Cart()
+        self.products = self.load_products()
+        self.customer = Customer()
+        self.selected_product = None
+        self.selected_size = "M"
+        self.selected_discount_type = tk.StringVar(value="Bronze")
+
+        self.container = tk.Frame(self, bg="#f8f9fa")
+        self.container.pack(fill="both", expand=True)
+
+        self.pages = {}
+        for P in (LoginPage, DashboardPage, ProductDetailPage, CartPage, PaymentPage, BillPage, InventoryPage):
+            page = P(parent=self.container, controller=self)
+            self.pages[P._name_] = page
+            page.grid(row=0, column=0, sticky="nsew")
+
+        self.show_page("LoginPage")
+
+    def show_page(self, name):
+        page = self.pages[name]
+        page.tkraise()
+        if hasattr(page, "on_show"):
+            page.on_show()
+
+    def safe_image(self, path, size):
+        try:
+            img = Image.open(path).resize(size, Image.LANCZOS)
+            return ImageTk.PhotoImage(img)
+        except:
+            img = Image.new("RGB", size, (240, 240, 240))
+            return ImageTk.PhotoImage(img)
+
+    def create_overlay(self):
+        try:
+            img = Image.new("RGBA", (180, 50), (0, 0, 0, 140))
+            img.save(self.overlay_path)
+        except:
+            pass
+
+    def load_products(self):
+        products = []
+        if not os.path.exists(self.images_folder):
+            messagebox.showerror("Error", f"Folder not found:\n{self.images_folder}")
+            return products
+
+        ignore = {"logo.png", "overlay.png", "visa.png", "Thumbs.db", "desktop.ini"}
+        valid_ext = (".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif")
+        files = [f for f in os.listdir(self.images_folder)
+                 if f.lower() not in {x.lower() for x in ignore} and f.lower().endswith(valid_ext)]
+
+        files.sort(key=lambda x: x.lower())
+        for f in files:
+            path = os.path.join(self.images_folder, f)
+            name = os.path.splitext(f)[0].replace("_", " ").title()
+            price = round(random.uniform(39.99, 89.99), 2)
+            try:
+                with Image.open(path) as img:
+                    img.verify()
+                products.append(Product(name=name, price=price, image_path=path))
+            except:
+                pass
+        print(f"Loaded {len(products)} products.")
+        return products
+
+# =========================================================
+# ----------------------- BASE PAGE ------------------------
+# =========================================================
+class BasePage(tk.Frame):
+    def _init_(self, parent, controller):
+        super()._init_(parent, bg="#f8f9fa")
+        self.controller = controller
+
+    def back_button(self, to_page):
+        btn = tk.Button(self, text="Back", font=("Segoe UI", 16, "bold"),
+                        bg="white", fg="black", bd=0, command=lambda: self.controller.show_page(to_page))
+        btn.place(x=15, y=10)
+        return btn
+
+# =========================================================
+# ----------------------- LOGIN PAGE -----------------------
+# =========================================================
+class LoginPage(BasePage):
+    def _init_(self, parent, controller):
+        super()._init_(parent, controller)
+        self.config(bg="#eef2f7")
+        card = tk.Frame(self, bg="white", highlightthickness=1, highlightbackground="#dfe3ea")
+        card.place(relx=0.5, rely=0.5, anchor="center", width=460, height=470)
+
+        logo_img = controller.safe_image(controller.logo_path, (130, 130))
+        tk.Label(card, image=logo_img, bg="white").image = logo_img
+        tk.Label(card, image=logo_img, bg="white").pack(pady=(25, 8))
+
+        tk.Label(card, text="SmartFit Store Login", font=("Segoe UI", 18, "bold"), fg="#111", bg="white").pack(pady=(0, 12))
+        tk.Label(card, text="Username", font=("Segoe UI", 10, "bold"), fg="#333", bg="white").pack(anchor="w", padx=55, pady=(5, 2))
+        self.user_ent = tk.Entry(card, font=("Segoe UI", 12))
+        self.user_ent.pack(ipady=7, padx=55, fill="x")
+        tk.Label(card, text="Password", font=("Segoe UI", 10, "bold"), fg="#333", bg="white").pack(anchor="w", padx=55, pady=(14, 2))
+        self.pass_ent = tk.Entry(card, font=("Segoe UI", 12), show="*")
+        self.pass_ent.pack(ipady=7, padx=55, fill="x")
+
+        btn_row = tk.Frame(card, bg="white")
+        btn_row.pack(pady=22)
+        tk.Button(btn_row, text="Login", bg="#2a9d8f", fg="white", font=("Segoe UI", 12, "bold"),
+                  command=self.login).pack(side="left", padx=8, ipadx=22, ipady=8)
+        tk.Button(btn_row, text="Clear", bg="#e6e9ef", fg="#111", command=self.clear).pack(side="left", padx=8, ipadx=20, ipady=8)
+
+        self.user_ent.insert(0, "staff001")
+        self.pass_ent.insert(0, "smart001")
+        self.user_ent.focus()
+
+    def clear(self):
+        self.user_ent.delete(0, "end")
+        self.pass_ent.delete(0, "end")
+
+    def login(self):
+        if self.user_ent.get() == "staff001" and self.pass_ent.get() == "smart001":
+            self.controller.show_page("DashboardPage")
+        else:
+            messagebox.showerror("Error", "Invalid login!\nUse: staff001 / smart001")
+
+# =========================================================
+# --------------------- DASHBOARD PAGE (2 PER ROW) ---------------------
+# =========================================================
+class DashboardPage(BasePage):
+    def _init_(self, parent, controller):
+        super()._init_(parent, controller)
+        self.bg_canvas = tk.Canvas(self, highlightthickness=0)
+        self.bg_canvas.pack(fill="both", expand=True)
+        self.bg_canvas.bind("<Configure>", self.draw_gradient)
+
+        self.main = tk.Frame(self.bg_canvas, bg="#f8f9fa")
+        self.bg_canvas.create_window((0, 0), window=self.main, anchor="nw")
+
+        # Sidebar
+        sidebar = tk.Frame(self.main, bg="#14213d", width=250)
+        sidebar.pack(side="left", fill="y")
+        sidebar.pack_propagate(False)
+        tk.Label(sidebar, text="DASHBOARD", fg="white", bg="#14213d", font=("Segoe UI", 18, "bold")).pack(pady=40)
+        for text, page in [("Products", "DashboardPage"), ("Inventory", "InventoryPage"), ("Logout", "LoginPage")]:
+            btn = tk.Button(sidebar, text=f"  {text}", anchor="w", fg="white", bg="#1f2a44", font=("Segoe UI", 13, "bold"),
+                            bd=0, padx=20, pady=12, command=lambda p=page: self.controller.show_page(p) if p != "LoginPage" else self.logout())
+            btn.pack(fill="x", padx=15, pady=5)
+            btn.bind("<Enter>", lambda e, b=btn: b.config(bg="#2c5282"))
+            btn.bind("<Leave>", lambda e, b=btn: b.config(bg="#1f2a44"))
+
+        # Content
+        content = tk.Frame(self.main, bg="#f8f9fa")
+        content.pack(side="left", fill="both", expand=True, padx=30, pady=20)
+
+        topbar = tk.Frame(content, bg="white", height=100)
+        topbar.pack(fill="x", pady=(0, 25))
+        topbar.pack_propagate(False)
+        logo_img = controller.safe_image(controller.logo_path, (80, 80))
+        tk.Label(topbar, image=logo_img, bg="white").image = logo_img
+        tk.Label(topbar, image=logo_img, bg="white").pack(side="left", padx=25)
+        tk.Label(topbar, text="SmartFit Store", font=("Segoe UI", 26, "bold"), bg="white").pack(side="left")
+        tk.Label(topbar, text="Style • Comfort • Performance", font=("Segoe UI", 13), bg="white", fg="#666").pack(side="left", padx=10)
+
+        holder = tk.Frame(content, bg="#f8f9fa")
+        holder.pack(fill="both", expand=True)
+        canvas = tk.Canvas(holder, bg="#f8f9fa", highlightthickness=0)
+        canvas.pack(side="left", fill="both", expand=True)
+        scroll = tk.Scrollbar(holder, command=canvas.yview)
+        scroll.pack(side="right", fill="y")
+        canvas.configure(yscrollcommand=scroll.set)
+
+        self.frame = tk.Frame(canvas, bg="#f8f9fa")
+        canvas.create_window((0, 0), window=self.frame, anchor="nw")
+        self.frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+
+        self.cart_panel = tk.Frame(content, bg="#e63946", relief="raised", bd=2)
+        self.cart_panel.place(relx=0.92, rely=0.88, anchor="center", width=280, height=110)
+        tk.Label(self.cart_panel, text="Cart", font=("Segoe UI", 16, "bold"), bg="#e63946", fg="white").pack()
+        self.cart_label = tk.Label(self.cart_panel, text="Cart Items: 0", font=("Segoe UI", 13, "bold"), bg="#e63946", fg="white")
+        self.cart_label.pack(pady=5)
+        tk.Button(self.cart_panel, text="VIEW CART", bg="white", fg="#e63946", font=("Segoe UI", 11, "bold"),
+                  command=lambda: controller.show_page("CartPage")).pack(pady=5)
+
+    def logout(self):
+        self.controller.cart.clear()
+        self.controller.selected_discount_type.set("Bronze")
+        self.controller.show_page("LoginPage")
+
+    def on_show(self):
+        self.render_products()
+        self.cart_label.config(text=f"Cart Items: {self.controller.cart.count()}")
+
+    def render_products(self):
+        for w in self.frame.winfo_children():
+            w.destroy()
+
+        for i, p in enumerate(self.controller.products):
+            row, col = divmod(i, 2)
+            card = tk.Frame(self.frame, bg="white", highlightbackground="#ddd", highlightthickness=1)
+            card.grid(row=row, column=col, padx=50, pady=40, sticky="nsew", ipadx=20, ipady=20)
+
+            def hover(e): card.config(bg="#f8fafc")
+            def leave(e): card.config(bg="white")
+            card.bind("<Enter>", hover)
+            card.bind("<Leave>", leave)
+
+            img = self.controller.safe_image(p.image_path, (380, 420))
+            lbl = tk.Label(card, image=img, bg="white")
+            lbl.image = img
+            lbl.pack(pady=(20, 10))
+
+            tk.Label(card, text=p.name, font=("Segoe UI", 20, "bold"), bg="white", fg="#1a1a1a").pack()
+            tk.Label(card, text=f"${p.price:.2f}", font=("Segoe UI", 24, "bold"), bg="white", fg="#e63946").pack(pady=10)
+            tk.Label(card, text="Sizes: S • M • L • XL", fg="#666", bg="white").pack(pady=5)
+
+            tk.Button(card, text="ADD TO CART", bg="#2a9d8f", fg="white", font=("Segoe UI", 13, "bold"),
+                      command=lambda pr=p: self.add_to_cart(pr)).pack(pady=15)
+
+            for widget in (card, lbl):
+                widget.bind("<Button-1>", lambda e, pr=p: self.open_detail(pr))
+
+        self.frame.grid_columnconfigure((0, 1), weight=1)
+
+    def add_to_cart(self, product):
+        self.controller.cart.add(product)
+        self.cart_label.config(text=f"Cart Items: {self.controller.cart.count()}")
+        messagebox.showinfo("Added", f"{product.name} added!")
+
+    def open_detail(self, product):
+        self.controller.selected_product = product
+        self.controller.show_page("ProductDetailPage")
+
+    def draw_gradient(self, event=None):
+        self.bg_canvas.delete("gradient")
+        w, h = self.bg_canvas.winfo_width(), self.bg_canvas.winfo_height()
+        for i in range(h):
+            ratio = i / h
+            color = f"#{int(240+(200-240)*ratio):02x}{int(248+(220-248)*ratio):02x}{int(255+(240-255)*ratio):02x}"
+            self.bg_canvas.create_line(0, i, w, i, fill=color, tags="gradient")
+        self.bg_canvas.lower("gradient")
+
+# =========================================================
+# -------------------------- RUN ---------------------------
+# =========================================================
+if _name_ == "_main_":
+    app = App()
+    app.mainloop() 
