@@ -1,0 +1,14 @@
+My Part – Transaction/Payment Module (StyleZone Retail System) Prajwal
+Description
+I developed the transaction/payment feature for our group retail management system. This module allows staff to record product sales, apply discounts (Regular, Student, VIP), calculate tax (15%), and process different payment methods such as Cash, Card, and Online.
+
+Features
+Calculates total with discount and tax
+Handles cash payments and change
+Stores each transaction in the Payments table
+Demonstrates OOP and database connection
+Files
+config.py → database setup
+db.py → MySQL connection
+transaction_service.py → business logic for transactions
+run_transaction.py → demo script for the feature
