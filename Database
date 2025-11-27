@@ -1,0 +1,22 @@
+CREATE TABLE products (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    quantity INT NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    image_path VARCHAR(500)
+);
+
+-- ===========================================
+-- INSERT ALL PRODUCTS
+-- (Make sure file names match your real files)
+-- ===========================================
+
+INSERT INTO products (name, quantity, price, image_path) VALUES
+('Barcelona', 20, 49.99, 'C:/Users/admin/OneDrive - Auckland Institute of Studies/Desktop/photo/Barcelona.jpg'),
+('Blue jersey', 25, 39.99, 'C:/Users/admin/OneDrive - Auckland Institute of Studies/Desktop/photo/Blue jersey.jpg'),
+('Half Shorts', 30, 24.99, 'C:/Users/admin/OneDrive - Auckland Institute of Studies/Desktop/photo/Half Shorts.jpg'),
+('Hoddie', 15, 59.99, 'C:/Users/admin/OneDrive - Auckland Institute of Studies/Desktop/photo/Hoddie.jpg'),
+('Liverpool', 20, 44.99, 'C:/Users/admin/OneDrive - Auckland Institute of Studies/Desktop/photo/Liverpool.jpg'),
+('Real madrid', 18, 54.99, 'C:/Users/admin/OneDrive - Auckland Institute of Studies/Desktop/photo/Real madrid.jpg'),
+('Real mardid', 18, 54.99, 'C:/Users/admin/OneDrive - Auckland Institute of Studies/Desktop/photo/Real mardid.jpg'),
+('Shorts', 35, 22.50, 'C:/Users/admin/OneDrive - Auckland Institute of Studies/Desktop/photo/Shorts.jpg')
