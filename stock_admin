@@ -1,0 +1,156 @@
+import tkinter as tk
+from tkinter import ttk, messagebox, filedialog
+import os
+
+class InventoryWindow(tk.Toplevel):
+    def __init__(self, parent, backend):
+        super().__init__(parent)
+        self.backend = backend
+        self.title("SmartFit Stock Controller")
+        self.geometry("1100x650")
+        self.configure(bg="#f8f9fa")
+
+        # Layout: Split Panes
+        paned = tk.PanedWindow(self, orient=tk.HORIZONTAL, bg="#f8f9fa")
+        paned.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # LEFT PANE: Editor
+        editor_frame = tk.LabelFrame(paned, text=" Item Editor ", bg="white", padx=15, pady=15, font=("Arial", 10, "bold"))
+        paned.add(editor_frame, width=320)
+
+        # Fields
+        self.entries = {}
+        
+        # Name
+        tk.Label(editor_frame, text="Item Name:", bg="white", fg="gray").pack(anchor="w", pady=(5, 0))
+        self.entries['item_name'] = tk.Entry(editor_frame, bg="#f1f2f6", relief=tk.FLAT)
+        self.entries['item_name'].pack(fill="x", ipady=4)
+
+        # Category Dropdown
+        tk.Label(editor_frame, text="Category (Determines Sizes):", bg="white", fg="gray").pack(anchor="w", pady=(5, 0))
+        self.entries['category'] = ttk.Combobox(editor_frame, values=["Uppers", "Lowers", "Shoes"], state="readonly")
+        self.entries['category'].current(0)
+        self.entries['category'].pack(fill="x", ipady=4)
+
+        # Price
+        tk.Label(editor_frame, text="Unit Price ($):", bg="white", fg="gray").pack(anchor="w", pady=(5, 0))
+        self.entries['unit_price'] = tk.Entry(editor_frame, bg="#f1f2f6", relief=tk.FLAT)
+        self.entries['unit_price'].pack(fill="x", ipady=4)
+
+        # Stock (Overall)
+        tk.Label(editor_frame, text="Total Stock Qty:", bg="white", fg="gray").pack(anchor="w", pady=(5, 0))
+        self.entries['qty_in_stock'] = tk.Entry(editor_frame, bg="#f1f2f6", relief=tk.FLAT)
+        self.entries['qty_in_stock'].pack(fill="x", ipady=4)
+
+        # Notes
+        tk.Label(editor_frame, text="Notes:", bg="white", fg="gray").pack(anchor="w", pady=(5, 0))
+        self.entries['details'] = tk.Entry(editor_frame, bg="#f1f2f6", relief=tk.FLAT)
+        self.entries['details'].pack(fill="x", ipady=4)
+
+        # Image Picker
+        tk.Label(editor_frame, text="Product Image", bg="white", fg="gray").pack(anchor="w", pady=(10, 0))
+        img_frm = tk.Frame(editor_frame, bg="white")
+        img_frm.pack(fill="x", pady=5)
+        self.lbl_img_path = tk.Label(img_frm, text="No image", bg="#f1f2f6", anchor="w", width=20)
+        self.lbl_img_path.pack(side="left", fill="x", expand=True)
+        tk.Button(img_frm, text="...", command=self.pick_img, width=3).pack(side="right", padx=5)
+
+        # Action Buttons
+        btn_frm = tk.Frame(editor_frame, bg="white", pady=20)
+        btn_frm.pack(fill="x", side="bottom")
+        
+        tk.Button(btn_frm, text="CLEAR", command=self.clear_form, bg="#dfe6e9", relief=tk.FLAT).pack(side="left", fill="x", expand=True, padx=2)
+        tk.Button(btn_frm, text="SAVE ITEM", command=self.save_item, bg="#2d3436", fg="white", relief=tk.FLAT).pack(side="left", fill="x", expand=True, padx=2)
+
+        # RIGHT PANE: Data Table
+        table_frame = tk.Frame(paned, bg="#f8f9fa")
+        paned.add(table_frame)
+        
+        # Toolbar
+        tool_bar = tk.Frame(table_frame, bg="#f8f9fa", pady=5)
+        tool_bar.pack(fill="x")
+        tk.Label(tool_bar, text="Current Inventory", font=("Arial", 14), bg="#f8f9fa").pack(side="left")
+        tk.Button(tool_bar, text="DELETE", command=self.delete_item, bg="#fab1a0", fg="#2d3436", relief=tk.FLAT).pack(side="right")
+        tk.Button(tool_bar, text="EDIT", command=self.load_to_editor, bg="#81ecec", fg="#2d3436", relief=tk.FLAT).pack(side="right", padx=10)
+
+        # Treeview
+        cols = ("SKU", "Name", "Cat", "Price", "Qty")
+        self.tree = ttk.Treeview(table_frame, columns=cols, show="headings")
+        self.tree.heading("SKU", text="ID"); self.tree.column("SKU", width=40)
+        self.tree.heading("Name", text="Product"); self.tree.column("Name", width=150)
+        self.tree.heading("Cat", text="Category"); self.tree.column("Cat", width=80)
+        self.tree.heading("Price", text="Price"); self.tree.column("Price", width=60)
+        self.tree.heading("Qty", text="Total Stock"); self.tree.column("Qty", width=80)
+        
+        self.tree.pack(fill="both", expand=True)
+        
+        self.editing_sku = None
+        self.load_data()
+
+    def pick_img(self):
+        fn = filedialog.askopenfilename(filetypes=[("Images", "*.png;*.jpg;*.jpeg")])
+        if fn: self.lbl_img_path.config(text=fn)
+
+    def load_data(self):
+        for r in self.tree.get_children(): self.tree.delete(r)
+        self.data_cache = self.backend.fetch_inventory()
+        for d in self.data_cache:
+            self.tree.insert("", "end", values=(d['sku'], d['item_name'], d['category'], d['unit_price'], d['qty_in_stock']))
+
+    def clear_form(self):
+        self.editing_sku = None
+        for k, e in self.entries.items():
+            if k == 'category': e.current(0)
+            else: e.delete(0, tk.END)
+        self.lbl_img_path.config(text="No image")
+
+    def load_to_editor(self):
+        sel = self.tree.selection()
+        if not sel: return
+        
+        sku = self.tree.item(sel[0])['values'][0]
+        record = next((x for x in self.data_cache if x['sku'] == sku), None)
+        
+        if record:
+            self.editing_sku = sku
+            self.entries['item_name'].delete(0, tk.END); self.entries['item_name'].insert(0, record['item_name'])
+            self.entries['category'].set(record['category'])
+            self.entries['unit_price'].delete(0, tk.END); self.entries['unit_price'].insert(0, record['unit_price'])
+            self.entries['qty_in_stock'].delete(0, tk.END); self.entries['qty_in_stock'].insert(0, record['qty_in_stock'])
+            self.entries['details'].delete(0, tk.END); self.entries['details'].insert(0, record['details'])
+            self.lbl_img_path.config(text=record['image_path'] if record['image_path'] else "No image")
+
+    def save_item(self):
+        try:
+            data = [
+                self.entries['item_name'].get(),
+                self.entries['category'].get(),
+                self.entries['unit_price'].get(),
+                self.entries['qty_in_stock'].get(),
+                self.lbl_img_path.cget("text"),
+                self.entries['details'].get()
+            ]
+            
+            if not data[0]: 
+                messagebox.showerror("Error", "Name required"); return
+            if data[4] == "No image": data[4] = ""
+
+            if self.editing_sku:
+                if self.backend.update_product(self.editing_sku, *data):
+                    messagebox.showinfo("Saved", "Product updated")
+                    self.clear_form(); self.load_data()
+            else:
+                if self.backend.add_product(*data):
+                    messagebox.showinfo("Saved", "Product created")
+                    self.clear_form(); self.load_data()
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def delete_item(self):
+        sel = self.tree.selection()
+        if not sel: return
+        sku = self.tree.item(sel[0])['values'][0]
+        if messagebox.askyesno("Delete?", "Remove this item permanently?"):
+            self.backend.remove_item(sku)
+            self.load_data()
+            self.clear_form()
